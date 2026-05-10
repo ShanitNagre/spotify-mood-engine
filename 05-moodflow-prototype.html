@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Spotify MoodFlow — AI Mood Engine Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Circular+Std:wght@400;500;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sp-green: #1db954;
+  --sp-green-dark: #158a3e;
+  --sp-black: #121212;
+  --sp-dark: #181818;
+  --sp-card: #282828;
+  --sp-elevated: #3e3e3e;
+  --white: #ffffff;
+  --text-sub: #b3b3b3;
+  --border: rgba(255,255,255,0.1);
+  --mood-calm: #4fc3f7;
+  --mood-happy: #ffeb3b;
+  --mood-sad: #7986cb;
+  --mood-angry: #ef5350;
+  --mood-focus: #66bb6a;
+  --mood-energy: #ff7043;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:#0a0a0a;font-family:'Inter',sans-serif;
+  display:flex;flex-direction:column;align-items:center;
+  padding:32px 16px;min-height:100vh;
+}
+
+.proto-label{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:#555;margin-bottom:20px;text-align:center;
+}
+.proto-label span{
+  background:#1a1a1a;padding:6px 16px;border-radius:20px;
+  border:1px solid #333;
+}
+
+/* PHONE */
+.phone{
+  width:393px;background:var(--sp-black);
+  border-radius:50px;
+  box-shadow:0 40px 100px rgba(0,0,0,0.6),0 0 0 10px #0a0a0a,0 0 0 12px #222;
+  overflow:hidden;position:relative;
+}
+
+/* STATUS */
+.status{
+  background:var(--sp-black);color:white;
+  padding:14px 28px 8px;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;font-weight:600;
+}
+.status-time{font-size:15px;}
+
+/* HEADER */
+.sp-header{
+  background:var(--sp-black);
+  padding:8px 20px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sp-logo{
+  color:var(--sp-green);font-weight:900;font-size:22px;letter-spacing:-1px;
+}
+.sp-header-right{display:flex;gap:16px;align-items:center;}
+.sp-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,#535353,#333);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;cursor:pointer;
+}
+
+/* SCREENS */
+.screen{display:none;overflow-y:auto;max-height:660px;}
+.screen.active{display:block;}
+.screen::-webkit-scrollbar{display:none;}
+
+/* HOME SCREEN */
+.home-greeting{
+  padding:0 20px 8px;
+  font-size:22px;font-weight:800;color:white;
+}
+.home-time{font-size:13px;color:var(--text-sub);padding:0 20px 16px;}
+
+/* MOODFLOW ENTRY PILL — THE HERO FEATURE */
+.moodflow-pill{
+  margin:0 20px 20px;
+  background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);
+  border-radius:20px;padding:20px;
+  border:1px solid rgba(29,185,84,0.3);
+  cursor:pointer;
+  transition:transform 0.2s,box-shadow 0.2s;
+  position:relative;overflow:hidden;
+}
+.moodflow-pill::before{
+  content:'';position:absolute;
+  top:-40px;right:-40px;width:120px;height:120px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(29,185,84,0.15),transparent);
+}
+.moodflow-pill:hover{transform:scale(1.01);box-shadow:0 8px 32px rgba(29,185,84,0.2);}
+.mf-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(29,185,84,0.15);border:1px solid rgba(29,185,84,0.3);
+  border-radius:20px;padding:4px 12px;
+  font-size:10px;font-weight:700;color:var(--sp-green);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;
+}
+.mf-title{font-size:18px;font-weight:800;color:white;margin-bottom:6px;}
+.mf-desc{font-size:13px;color:rgba(255,255,255,0.6);line-height:1.5;margin-bottom:14px;}
+.mf-cta{
+  display:flex;align-items:center;justify-content:space-between;
+}
+.mf-cta-btn{
+  background:var(--sp-green);color:black;
+  padding:10px 20px;border-radius:20px;
+  font-size:13px;font-weight:700;border:none;cursor:pointer;
+  transition:background 0.2s;
+}
+.mf-cta-btn:hover{background:#1ed760;}
+.mf-cta-hint{font-size:11px;color:rgba(255,255,255,0.4);}
+
+/* SECTION HEADERS */
+.sec-header{
+  padding:0 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sec-title{font-size:16px;font-weight:800;color:white;}
+.sec-link{font-size:11px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.06em;cursor:pointer;}
+.sec-link:hover{color:white;}
+
+/* PRESET CARDS */
+.presets-scroll{
+  display:flex;gap:12px;padding:0 20px 20px;overflow-x:auto;
+}
+.presets-scroll::-webkit-scrollbar{display:none;}
+.preset-card{
+  flex-shrink:0;width:110px;border-radius:12px;
+  padding:14px 12px;cursor:pointer;
+  transition:transform 0.15s,filter 0.15s;
+  position:relative;overflow:hidden;
+}
+.preset-card:hover{transform:scale(1.04);filter:brightness(1.1);}
+.preset-emoji{font-size:28px;display:block;margin-bottom:8px;}
+.preset-name{font-size:13px;font-weight:700;color:white;}
+.preset-bpm{font-size:10px;color:rgba(255,255,255,0.6);margin-top:2px;}
+
+/* RECENTLY PLAYED */
+.recent-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:8px;padding:0 20px 20px;
+}
+.recent-item{
+  background:var(--sp-card);border-radius:8px;
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;cursor:pointer;
+  transition:background 0.15s;
+}
+.recent-item:hover{background:var(--sp-elevated);}
+.recent-art{
+  width:44px;height:44px;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  flex-shrink:0;
+}
+.recent-name{font-size:12px;font-weight:600;color:white;line-height:1.3;}
+
+/* MOOD INPUT SCREEN */
+.mood-screen{padding:24px 20px;}
+.mood-back{
+  display:flex;align-items:center;gap:8px;
+  color:var(--text-sub);font-size:13px;font-weight:600;
+  cursor:pointer;margin-bottom:24px;
+  background:none;border:none;
+}
+.mood-back:hover{color:white;}
+.mood-headline{font-size:28px;font-weight:900;color:white;line-height:1.2;margin-bottom:6px;}
+.mood-sub{font-size:14px;color:var(--text-sub);margin-bottom:32px;line-height:1.5;}
+
+/* ENERGY SLIDER */
+.slider-section{margin-bottom:28px;}
+.slider-label{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:12px;
+}
+.slider-name{font-size:14px;font-weight:700;color:white;}
+.slider-value{
+  font-size:24px;font-weight:900;color:var(--sp-green);
+  font-variant-numeric:tabular-nums;
+}
+.mood-slider{
+  -webkit-appearance:none;width:100%;height:6px;
+  border-radius:3px;background:#535353;outline:none;cursor:pointer;
+}
+.mood-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;
+  background:white;border-radius:50%;cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  transition:transform 0.1s;
+}
+.mood-slider::-webkit-slider-thumb:active{transform:scale(1.2);}
+.slider-ends{display:flex;justify-content:space-between;margin-top:6px;}
+.slider-end{font-size:11px;color:var(--text-sub);}
+
+/* EMOTION GRID */
+.emotion-section{margin-bottom:28px;}
+.emotion-label{font-size:14px;font-weight:700;color:white;margin-bottom:14px;}
+.emotion-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.emotion-btn{
+  background:var(--sp-card);border:2px solid transparent;
+  border-radius:14px;padding:12px 6px 10px;
+  text-align:center;cursor:pointer;
+  transition:all 0.15s;
+}
+.emotion-btn:hover{background:var(--sp-elevated);}
+.emotion-btn.selected{border-color:var(--sp-green);background:rgba(29,185,84,0.12);}
+.emotion-emoji{font-size:24px;display:block;margin-bottom:4px;}
+.emotion-name{font-size:10px;color:var(--text-sub);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
+.emotion-btn.selected .emotion-name{color:var(--sp-green);}
+
+/* DESTINATION */
+.dest-section{margin-bottom:28px;}
+.dest-label{font-size:14px;font-weight:700;color:white;margin-bottom:14px;}
+.dest-options{display:flex;gap:10px;flex-wrap:wrap;}
+.dest-btn{
+  background:var(--sp-card);border:2px solid transparent;
+  border-radius:20px;padding:8px 16px;
+  font-size:13px;font-weight:600;color:var(--text-sub);
+  cursor:pointer;transition:all 0.15s;
+}
+.dest-btn:hover{color:white;background:var(--sp-elevated);}
+.dest-btn.selected{border-color:var(--sp-green);color:white;background:rgba(29,185,84,0.1);}
+
+/* GENERATE BTN */
+.generate-btn{
+  width:100%;padding:18px;background:var(--sp-green);
+  color:black;border:none;border-radius:32px;
+  font-size:16px;font-weight:800;cursor:pointer;
+  transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.generate-btn:hover{background:#1ed760;transform:scale(1.01);}
+.generate-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+/* GENERATING OVERLAY */
+.generating{
+  position:absolute;inset:0;
+  background:rgba(18,18,18,0.95);
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:20px;z-index:50;
+}
+.generating.show{display:flex;}
+.gen-spinner{
+  width:60px;height:60px;
+  border:3px solid rgba(29,185,84,0.2);
+  border-top-color:var(--sp-green);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gen-text{font-size:16px;font-weight:700;color:white;}
+.gen-sub{font-size:13px;color:var(--text-sub);text-align:center;max-width:240px;line-height:1.5;}
+.gen-bars{display:flex;gap:4px;align-items:flex-end;height:30px;}
+.gen-bar{
+  width:4px;background:var(--sp-green);border-radius:2px;
+  animation:barPulse 0.8s ease-in-out infinite;
+}
+.gen-bar:nth-child(1){animation-delay:0s;height:40%}
+.gen-bar:nth-child(2){animation-delay:0.1s;height:70%}
+.gen-bar:nth-child(3){animation-delay:0.2s;height:100%}
+.gen-bar:nth-child(4){animation-delay:0.3s;height:60%}
+.gen-bar:nth-child(5){animation-delay:0.4s;height:80%}
+@keyframes barPulse{0%,100%{opacity:0.3}50%{opacity:1}}
+
+/* NOW PLAYING SCREEN */
+.np-screen{padding:20px;}
+.np-back{
+  display:flex;align-items:center;gap:8px;color:var(--text-sub);
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  cursor:pointer;margin-bottom:24px;background:none;border:none;
+}
+.np-context{
+  text-align:center;font-size:11px;font-weight:700;
+  color:var(--sp-green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:20px;
+}
+.np-art{
+  width:280px;height:280px;border-radius:8px;
+  margin:0 auto 24px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:100px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.6);
+  transition:transform 0.3s;
+  cursor:pointer;
+}
+.np-art:hover{transform:scale(1.02);}
+.np-track-info{text-align:center;margin-bottom:20px;}
+.np-track-name{font-size:20px;font-weight:800;color:white;margin-bottom:4px;}
+.np-artist{font-size:14px;color:var(--text-sub);}
+.np-controls{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 8px;margin-bottom:20px;
+}
+.np-ctrl{background:none;border:none;color:var(--text-sub);font-size:22px;cursor:pointer;padding:8px;transition:color 0.15s;}
+.np-ctrl:hover{color:white;}
+.np-ctrl.play{
+  width:56px;height:56px;border-radius:50%;
+  background:white;color:black;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;transition:transform 0.1s;
+}
+.np-ctrl.play:hover{transform:scale(1.05);}
+
+/* PROGRESS BAR */
+.progress-section{margin-bottom:20px;}
+.progress-bar{
+  width:100%;height:4px;background:#535353;border-radius:2px;
+  cursor:pointer;margin-bottom:6px;overflow:hidden;
+}
+.progress-fill{
+  height:100%;background:white;border-radius:2px;
+  width:35%;transition:width 0.1s;
+}
+.progress-bar:hover .progress-fill{background:var(--sp-green);}
+.progress-times{display:flex;justify-content:space-between;font-size:11px;color:var(--text-sub);}
+
+/* MOOD INDICATOR */
+.mood-indicator{
+  background:var(--sp-card);border-radius:16px;padding:14px 16px;
+  margin-bottom:16px;
+  display:flex;align-items:center;gap:12px;
+}
+.mood-ind-icon{font-size:24px;}
+.mood-ind-text{flex:1;}
+.mood-ind-label{font-size:11px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+.mood-ind-value{font-size:14px;font-weight:700;color:white;}
+.mood-ind-arc{
+  font-size:11px;color:var(--sp-green);font-weight:600;
+  background:rgba(29,185,84,0.1);padding:3px 10px;border-radius:10px;
+}
+
+/* QUEUE PREVIEW */
+.queue-preview{background:var(--sp-card);border-radius:16px;padding:14px;}
+.queue-title{font-size:12px;font-weight:700;color:var(--text-sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.queue-item{
+  display:flex;align-items:center;gap:10px;padding:6px 0;
+  border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background 0.1s;
+}
+.queue-item:last-child{border-bottom:none;}
+.queue-item:hover{background:rgba(255,255,255,0.03);border-radius:8px;padding:6px 8px;margin:0 -8px;}
+.q-art{width:36px;height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.q-info{flex:1;}
+.q-name{font-size:13px;font-weight:600;color:white;}
+.q-artist{font-size:11px;color:var(--text-sub);}
+.q-mood{font-size:10px;color:var(--sp-green);font-weight:600;}
+
+/* BOTTOM NAV */
+.bottom-nav{
+  background:linear-gradient(transparent,var(--sp-black) 40%);
+  padding:8px 0 28px;
+  display:flex;position:sticky;bottom:0;
+}
+.bnav{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
+.bnav-icon{font-size:22px;filter:brightness(0.4);}
+.bnav-icon.active{filter:brightness(1);}
+.bnav-label{font-size:9px;font-weight:700;color:#535353;text-transform:uppercase;letter-spacing:.04em;}
+.bnav-label.active{color:white;}
+
+/* MINI PLAYER */
+.mini-player{
+  background:var(--sp-card);
+  margin:0 10px 8px;border-radius:12px;padding:10px 14px;
+  display:flex;align-items:center;gap:10px;
+  cursor:pointer;transition:background 0.15s;
+}
+.mini-player:hover{background:var(--sp-elevated);}
+.mini-art{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.mini-info{flex:1;}
+.mini-track{font-size:13px;font-weight:600;color:white;}
+.mini-mood{font-size:11px;color:var(--sp-green);font-weight:600;}
+.mini-controls{display:flex;gap:12px;align-items:center;}
+.mini-btn{background:none;border:none;color:white;font-size:20px;cursor:pointer;}
+
+/* TOAST */
+.sp-toast{
+  position:absolute;bottom:90px;left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:var(--sp-green);color:black;
+  padding:10px 20px;border-radius:20px;
+  font-size:13px;font-weight:700;
+  opacity:0;transition:all 0.3s;pointer-events:none;
+  white-space:nowrap;z-index:100;
+}
+.sp-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="proto-label">
+  <span>🎵 Interactive Prototype · Spotify MoodFlow · Shanit Nagre</span>
+</div>
+
+<div class="phone">
+  <div class="status">
+    <span class="status-time">9:41</span>
+    <div style="display:flex;gap:6px;font-size:12px"><span>●●●</span><span>WiFi</span><span>🔋</span></div>
+  </div>
+
+  <div class="sp-header">
+    <div class="sp-logo">Spotify</div>
+    <div class="sp-header-right">
+      <span style="font-size:20px;cursor:pointer;color:white" onclick="toast('Notifications')">🔔</span>
+      <span style="font-size:20px;cursor:pointer;color:white" onclick="toast('History')">🕐</span>
+      <div class="sp-avatar" onclick="toast('Profile')">SN</div>
+    </div>
+  </div>
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screen-home">
+    <div class="home-greeting">Good evening 🌙</div>
+    <div class="home-time">Sunday · 9:41 PM</div>
+
+    <!-- MOODFLOW PILL — HERO ENTRY POINT -->
+    <div class="moodflow-pill" onclick="openMoodInput()">
+      <div class="mf-badge">✨ New · AI Feature</div>
+      <div class="mf-title">How are you feeling?</div>
+      <div class="mf-desc">Tell MoodFlow your mood and it'll generate the perfect 2-hour playlist for right now.</div>
+      <div class="mf-cta">
+        <button class="mf-cta-btn">Start MoodFlow</button>
+        <span class="mf-cta-hint">Takes 10 seconds</span>
+      </div>
+    </div>
+
+    <!-- CONTEXT PRESETS -->
+    <div class="sec-header">
+      <div class="sec-title">Quick Presets</div>
+      <div class="sec-link" onclick="toast('All presets')">See all</div>
+    </div>
+    <div class="presets-scroll">
+      <div class="preset-card" style="background:linear-gradient(135deg,#1a237e,#283593)" onclick="quickPreset('Focus')">
+        <span class="preset-emoji">📚</span>
+        <div class="preset-name">Focus</div>
+        <div class="preset-bpm">60–90 BPM</div>
+      </div>
+      <div class="preset-card" style="background:linear-gradient(135deg,#b71c1c,#c62828)" onclick="quickPreset('Gym')">
+        <span class="preset-emoji">💪</span>
+        <div class="preset-name">Gym</div>
+        <div class="preset-bpm">130–160 BPM</div>
+      </div>
+      <div class="preset-card" style="background:linear-gradient(135deg,#1b5e20,#2e7d32)" onclick="quickPreset('Sleep')">
+        <span class="preset-emoji">😴</span>
+        <div class="preset-name">Sleep</div>
+        <div class="preset-bpm">40–65 BPM</div>
+      </div>
+      <div class="preset-card" style="background:linear-gradient(135deg,#e65100,#f57c00)" onclick="quickPreset('Running')">
+        <span class="preset-emoji">🏃</span>
+        <div class="preset-name">Running</div>
+        <div class="preset-bpm">150–175 BPM</div>
+      </div>
+      <div class="preset-card" style="background:linear-gradient(135deg,#4a148c,#6a1b9a)" onclick="quickPreset('Dinner')">
+        <span class="preset-emoji">🍽️</span>
+        <div class="preset-name">Dinner</div>
+        <div class="preset-bpm">90–110 BPM</div>
+      </div>
+    </div>
+
+    <!-- RECENTLY PLAYED -->
+    <div class="sec-header"><div class="sec-title">Recently played</div></div>
+    <div class="recent-grid">
+      <div class="recent-item" onclick="toast('Playing Liked Songs')">
+        <div class="recent-art" style="background:#1a237e">💚</div>
+        <div class="recent-name">Liked Songs</div>
+      </div>
+      <div class="recent-item" onclick="toast('Playing Discover Weekly')">
+        <div class="recent-art" style="background:#6a1b9a">🎵</div>
+        <div class="recent-name">Discover Weekly</div>
+      </div>
+      <div class="recent-item" onclick="toast('Playing Chill Vibes')">
+        <div class="recent-art" style="background:#004d40">🌊</div>
+        <div class="recent-name">Chill Vibes</div>
+      </div>
+      <div class="recent-item" onclick="toast('Playing Daily Mix 1')">
+        <div class="recent-art" style="background:#bf360c">🔥</div>
+        <div class="recent-name">Daily Mix 1</div>
+      </div>
+      <div class="recent-item" onclick="toast('Playing Lo-Fi Beats')">
+        <div class="recent-art" style="background:#212121">☁️</div>
+        <div class="recent-name">Lo-Fi Beats</div>
+      </div>
+      <div class="recent-item" onclick="toast('Playing Top Hits')">
+        <div class="recent-art" style="background:#1565c0">📈</div>
+        <div class="recent-name">Top Hits India</div>
+      </div>
+    </div>
+    <div style="height:80px"></div>
+  </div>
+
+  <!-- MOOD INPUT SCREEN -->
+  <div class="screen" id="screen-mood">
+    <div class="mood-screen">
+      <button class="mood-back" onclick="switchScreen('home')">← Back</button>
+      <div class="mood-headline">How are<br>you feeling?</div>
+      <div class="mood-sub">MoodFlow needs 10 seconds to build your perfect playlist.</div>
+
+      <!-- ENERGY SLIDER -->
+      <div class="slider-section">
+        <div class="slider-label">
+          <span class="slider-name">⚡ Energy Level</span>
+          <span class="slider-value" id="energyVal">6</span>
+        </div>
+        <input type="range" class="mood-slider" id="energySlider" min="1" max="10" value="6"
+          oninput="document.getElementById('energyVal').textContent=this.value;updateSliderColor(this)">
+        <div class="slider-ends">
+          <span class="slider-end">😴 Exhausted</span>
+          <span class="slider-end">⚡ Electric</span>
+        </div>
+      </div>
+
+      <!-- EMOTION BUTTONS -->
+      <div class="emotion-section">
+        <div class="emotion-label">How would you describe it?</div>
+        <div class="emotion-grid" id="emotionGrid">
+          <div class="emotion-btn" onclick="selectEmotion(this,'Stressed')"><span class="emotion-emoji">😤</span><span class="emotion-name">Stressed</span></div>
+          <div class="emotion-btn selected" onclick="selectEmotion(this,'Happy')"><span class="emotion-emoji">😊</span><span class="emotion-name">Happy</span></div>
+          <div class="emotion-btn" onclick="selectEmotion(this,'Sad')"><span class="emotion-emoji">😢</span><span class="emotion-name">Sad</span></div>
+          <div class="emotion-btn" onclick="selectEmotion(this,'Calm')"><span class="emotion-emoji">😌</span><span class="emotion-name">Calm</span></div>
+          <div class="emotion-btn" onclick="selectEmotion(this,'Motivated')"><span class="emotion-emoji">💪</span><span class="emotion-name">Motivated</span></div>
+          <div class="emotion-btn" onclick="selectEmotion(this,'Tired')"><span class="emotion-emoji">🥱</span><span class="emotion-name">Tired</span></div>
+          <div class="emotion-btn" onclick="selectEmotion(this,'Celebratory')"><span class="emotion-emoji">🥳</span><span class="emotion-name">Hyped</span></div>
+          <div class="emotion-btn" onclick="selectEmotion(this,'Focused')"><span class="emotion-emoji">🎯</span><span class="emotion-name">Focused</span></div>
+        </div>
+      </div>
+
+      <!-- DESTINATION -->
+      <div class="dest-section">
+        <div class="dest-label">Where do you want to go?</div>
+        <div class="dest-options">
+          <div class="dest-btn selected" onclick="selectDest(this)">Stay here</div>
+          <div class="dest-btn" onclick="selectDest(this)">Lift me up</div>
+          <div class="dest-btn" onclick="selectDest(this)">Calm me down</div>
+          <div class="dest-btn" onclick="selectDest(this)">Energize me</div>
+          <div class="dest-btn" onclick="selectDest(this)">Help me focus</div>
+        </div>
+      </div>
+
+      <button class="generate-btn" onclick="generatePlaylist()">
+        <span>✨</span> Generate My MoodFlow
+      </button>
+      <div style="height:32px"></div>
+    </div>
+  </div>
+
+  <!-- NOW PLAYING SCREEN -->
+  <div class="screen" id="screen-playing">
+    <div class="np-screen">
+      <button class="np-back" onclick="switchScreen('home')">↓ MoodFlow</button>
+      <div class="np-context" id="npContext">✨ Happy · Energy 6 · Stay here</div>
+
+      <div class="np-art" id="npArt" onclick="toast('Added to Liked Songs ♥')">🎸</div>
+
+      <div class="np-track-info">
+        <div class="np-track-name" id="npTrack">Blinding Lights</div>
+        <div class="np-artist" id="npArtist">The Weeknd</div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-bar" onclick="seekTrack(event)">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-times">
+          <span id="currentTime">1:24</span>
+          <span>3:20</span>
+        </div>
+      </div>
+
+      <div class="np-controls">
+        <button class="np-ctrl" onclick="toast('Shuffle on')">🔀</button>
+        <button class="np-ctrl" onclick="prevTrack()">⏮</button>
+        <button class="np-ctrl play" id="playBtn" onclick="togglePlay()">▶</button>
+        <button class="np-ctrl" onclick="nextTrack()">⏭</button>
+        <button class="np-ctrl" onclick="toast('Repeat on')">🔁</button>
+      </div>
+
+      <div class="mood-indicator">
+        <span class="mood-ind-icon" id="moodIndIcon">😊</span>
+        <div class="mood-ind-text">
+          <div class="mood-ind-label">MoodFlow is playing for</div>
+          <div class="mood-ind-value" id="moodIndValue">Happy · Energy 6 of 10</div>
+        </div>
+        <div class="mood-ind-arc" id="moodArc">Staying here</div>
+      </div>
+
+      <div class="queue-preview">
+        <div class="queue-title">Up next in MoodFlow</div>
+        <div class="queue-item" onclick="playTrack('Levitating','Dua Lipa','🪩','#6a1b9a')">
+          <div class="q-art" style="background:#6a1b9a">🪩</div>
+          <div class="q-info">
+            <div class="q-name">Levitating</div>
+            <div class="q-artist">Dua Lipa</div>
+          </div>
+          <div class="q-mood">98% match</div>
+        </div>
+        <div class="queue-item" onclick="playTrack('As It Was','Harry Styles','🌈','#1565c0')">
+          <div class="q-art" style="background:#1565c0">🌈</div>
+          <div class="q-info">
+            <div class="q-name">As It Was</div>
+            <div class="q-artist">Harry Styles</div>
+          </div>
+          <div class="q-mood">96% match</div>
+        </div>
+        <div class="queue-item" onclick="playTrack('Stay','The Kid LAROI','⚡','#bf360c')">
+          <div class="q-art" style="background:#bf360c">⚡</div>
+          <div class="q-info">
+            <div class="q-name">Stay</div>
+            <div class="q-artist">The Kid LAROI & Justin Bieber</div>
+          </div>
+          <div class="q-mood">94% match</div>
+        </div>
+      </div>
+      <div style="height:80px"></div>
+    </div>
+  </div>
+
+  <!-- MINI PLAYER (shown when not on playing screen) -->
+  <div class="mini-player" id="miniPlayer" style="display:none" onclick="switchScreen('playing')">
+    <div class="mini-art" id="miniArt" style="background:#1a237e">🎸</div>
+    <div class="mini-info">
+      <div class="mini-track" id="miniTrack">Blinding Lights</div>
+      <div class="mini-mood">✨ MoodFlow · Happy</div>
+    </div>
+    <div class="mini-controls">
+      <button class="mini-btn" onclick="event.stopPropagation();prevTrack()">⏮</button>
+      <button class="mini-btn" onclick="event.stopPropagation();togglePlay()">▶</button>
+      <button class="mini-btn" onclick="event.stopPropagation();nextTrack()">⏭</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="bnav" onclick="switchScreen('home')">
+      <span class="bnav-icon active" id="nav-home">🏠</span>
+      <span class="bnav-label active">Home</span>
+    </div>
+    <div class="bnav" onclick="toast('Search')">
+      <span class="bnav-icon">🔍</span>
+      <span class="bnav-label">Search</span>
+    </div>
+    <div class="bnav" onclick="toast('Your Library')">
+      <span class="bnav-icon">📚</span>
+      <span class="bnav-label">Library</span>
+    </div>
+    <div class="bnav" onclick="openMoodInput()">
+      <span class="bnav-icon" id="nav-mood">✨</span>
+      <span class="bnav-label">MoodFlow</span>
+    </div>
+  </div>
+
+  <!-- GENERATING OVERLAY -->
+  <div class="generating" id="generating">
+    <div class="gen-bars">
+      <div class="gen-bar"></div>
+      <div class="gen-bar"></div>
+      <div class="gen-bar"></div>
+      <div class="gen-bar"></div>
+      <div class="gen-bar"></div>
+    </div>
+    <div class="gen-text">Building your MoodFlow</div>
+    <div class="gen-sub" id="genSub">Mapping your mood to 100M+ tracks...</div>
+  </div>
+
+  <div class="sp-toast" id="spToast"></div>
+</div>
+
+<div style="text-align:center;margin-top:24px;font-size:11px;color:#555;letter-spacing:.08em;text-transform:uppercase;font-family:'Inter',sans-serif">
+  CONCEPT PROTOTYPE · NOT AN OFFICIAL SPOTIFY PRODUCT<br>
+  Shanit Nagre · AI Product Manager · shanitnagre.github.io
+</div>
+
+<script>
+const GEN_MESSAGES = [
+  'Mapping your mood to 100M+ tracks...',
+  'Analysing energy level and emotional state...',
+  'Finding the perfect audio features...',
+  'Calibrating valence, tempo, and danceability...',
+  'Building your 2-hour mood arc...',
+  'Almost there — adding transition smoothing...',
+];
+
+const TRACKS = [
+  {name:'Blinding Lights',artist:'The Weeknd',art:'🎸',bg:'#1a237e'},
+  {name:'Levitating',artist:'Dua Lipa',art:'🪩',bg:'#6a1b9a'},
+  {name:'As It Was',artist:'Harry Styles',art:'🌈',bg:'#1565c0'},
+  {name:'Stay',artist:'The Kid LAROI',art:'⚡',bg:'#bf360c'},
+  {name:'Heat Waves',artist:'Glass Animals',art:'🌊',bg:'#004d40'},
+  {name:'Shivers',artist:'Ed Sheeran',art:'🎵',bg:'#e65100'},
+  {name:'Easy On Me',artist:'Adele',art:'🕊️',bg:'#37474f'},
+  {name:'Industry Baby',artist:'Lil Nas X',art:'🎺',bg:'#b71c1c'},
+];
+
+let currentTrack = 0;
+let isPlaying = false;
+let progress = 35;
+let progressTimer;
+let selectedEmotion = 'Happy';
+let selectedDest = 'Stay here';
+let moodFlowActive = false;
+
+function switchScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  const mini = document.getElementById('miniPlayer');
+  mini.style.display = (name !== 'playing' && moodFlowActive) ? 'flex' : 'none';
+}
+
+function openMoodInput() {
+  switchScreen('mood');
+}
+
+function selectEmotion(el, name) {
+  document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedEmotion = name;
+}
+
+function selectDest(el) {
+  document.querySelectorAll('.dest-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedDest = el.textContent;
+}
+
+function updateSliderColor(slider) {
+  const val = slider.value;
+  const pct = (val - 1) / 9 * 100;
+  slider.style.background = `linear-gradient(to right, #1db954 ${pct}%, #535353 ${pct}%)`;
+}
+
+function generatePlaylist() {
+  const gen = document.getElementById('generating');
+  gen.classList.add('show');
+  let msgIdx = 0;
+  const interval = setInterval(() => {
+    document.getElementById('genSub').textContent = GEN_MESSAGES[msgIdx % GEN_MESSAGES.length];
+    msgIdx++;
+  }, 500);
+  setTimeout(() => {
+    clearInterval(interval);
+    gen.classList.remove('show');
+    const energy = document.getElementById('energySlider').value;
+    document.getElementById('npContext').textContent = `✨ ${selectedEmotion} · Energy ${energy} · ${selectedDest}`;
+    document.getElementById('moodIndValue').textContent = `${selectedEmotion} · Energy ${energy} of 10`;
+    document.getElementById('moodArc').textContent = selectedDest;
+    moodFlowActive = true;
+    isPlaying = true;
+    document.getElementById('playBtn').textContent = '⏸';
+    startProgress();
+    switchScreen('playing');
+    toast('🎵 MoodFlow ready — 127 tracks queued');
+  }, 3000);
+}
+
+function quickPreset(name) {
+  const presetData = {
+    Focus: {energy:4, emotion:'Focused', dest:'Help me focus', emoji:'🎯'},
+    Gym: {energy:9, emotion:'Motivated', dest:'Energize me', emoji:'💪'},
+    Sleep: {energy:1, emotion:'Calm', dest:'Calm me down', emoji:'😴'},
+    Running: {energy:9, emotion:'Motivated', dest:'Energize me', emoji:'🏃'},
+    Dinner: {energy:5, emotion:'Happy', dest:'Stay here', emoji:'🍽️'},
+  };
+  const d = presetData[name];
+  document.getElementById('energySlider').value = d.energy;
+  document.getElementById('energyVal').textContent = d.energy;
+  updateSliderColor(document.getElementById('energySlider'));
+  selectedEmotion = d.emotion;
+  selectedDest = d.dest;
+  document.querySelectorAll('.emotion-btn').forEach(b => {
+    if(b.querySelector('.emotion-name').textContent === d.emotion) b.classList.add('selected');
+    else b.classList.remove('selected');
+  });
+  toast(`${d.emoji} ${name} preset selected — tap Generate!`);
+  openMoodInput();
+}
+
+function playTrack(name, artist, art, bg) {
+  currentTrack = TRACKS.findIndex(t => t.name === name) || 0;
+  updateNowPlaying(name, artist, art, bg);
+  toast(`Now playing: ${name}`);
+}
+
+function updateNowPlaying(name, artist, art, bg) {
+  document.getElementById('npTrack').textContent = name;
+  document.getElementById('npArtist').textContent = artist;
+  const npArt = document.getElementById('npArt');
+  npArt.textContent = art;
+  npArt.style.background = `linear-gradient(135deg, ${bg}, ${bg}88)`;
+  document.getElementById('miniTrack').textContent = name;
+  document.getElementById('miniArt').textContent = art;
+  document.getElementById('miniArt').style.background = bg;
+  progress = 0;
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('currentTime').textContent = '0:00';
+}
+
+function nextTrack() {
+  currentTrack = (currentTrack + 1) % TRACKS.length;
+  const t = TRACKS[currentTrack];
+  updateNowPlaying(t.name, t.artist, t.art, t.bg);
+  toast(`⏭ ${t.name} — ${Math.floor(Math.random()*10+88)}% mood match`);
+}
+
+function prevTrack() {
+  currentTrack = (currentTrack - 1 + TRACKS.length) % TRACKS.length;
+  const t = TRACKS[currentTrack];
+  updateNowPlaying(t.name, t.artist, t.art, t.bg);
+  toast(`⏮ ${t.name}`);
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  document.getElementById('playBtn').textContent = isPlaying ? '⏸' : '▶';
+  if(isPlaying) startProgress(); else clearInterval(progressTimer);
+}
+
+function startProgress() {
+  clearInterval(progressTimer);
+  progressTimer = setInterval(() => {
+    progress = Math.min(progress + 0.5, 100);
+    document.getElementById('progressFill').style.width = progress + '%';
+    const totalSecs = 200;
+    const elapsed = Math.floor(totalSecs * progress / 100);
+    document.getElementById('currentTime').textContent =
+      Math.floor(elapsed/60) + ':' + String(elapsed%60).padStart(2,'0');
+    if(progress >= 100) { clearInterval(progressTimer); nextTrack(); if(isPlaying) startProgress(); }
+  }, 100);
+}
+
+function seekTrack(e) {
+  const bar = e.currentTarget;
+  const rect = bar.getBoundingClientRect();
+  progress = Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width * 100));
+  document.getElementById('progressFill').style.width = progress + '%';
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('spToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// Init slider color
+updateSliderColor(document.getElementById('energySlider'));
+</script>
+</body>
+</html>
